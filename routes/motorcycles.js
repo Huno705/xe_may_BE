@@ -95,7 +95,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST create motorcycle (admin only)
-router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => {
+router.post('/', authMiddleware, upload.any(), async (req, res) => {
   try {
     const { name, price, description, saigon_deposit, province_deposit, branch_id } = req.body;
 
@@ -103,9 +103,13 @@ router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => 
       return res.status(400).json({ error: 'Name and price are required' });
     }
 
+    const imageFiles = (req.files || []).filter((f) =>
+      /^images?$/i.test(f.fieldname)
+    );
+
     let imageUrls = [];
-    if (req.files && req.files.length > 0) {
-      imageUrls = await uploadImages(req.files);
+    if (imageFiles.length > 0) {
+      imageUrls = await uploadImages(imageFiles);
     }
 
     const { data, error } = await supabase
@@ -132,7 +136,7 @@ router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => 
 });
 
 // PUT update motorcycle (admin only)
-router.put('/:id', authMiddleware, upload.array('images', 8), async (req, res) => {
+router.put('/:id', authMiddleware, upload.any(), async (req, res) => {
   try {
     const { name, price, description, saigon_deposit, province_deposit, branch_id, existingImages } = req.body;
     const { id } = req.params;
@@ -142,8 +146,11 @@ router.put('/:id', authMiddleware, upload.array('images', 8), async (req, res) =
       imageUrls = Array.isArray(existingImages) ? existingImages : JSON.parse(existingImages);
     }
 
-    if (req.files && req.files.length > 0) {
-      const newUrls = await uploadImages(req.files);
+    const newImageFiles = (req.files || []).filter((f) =>
+      /^images?$/i.test(f.fieldname)
+    );
+    if (newImageFiles.length > 0) {
+      const newUrls = await uploadImages(newImageFiles);
       imageUrls = [...imageUrls, ...newUrls];
     }
 
