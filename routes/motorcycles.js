@@ -42,13 +42,34 @@ async function uploadImages(files) {
   return urls;
 }
 
-// GET all motorcycles (public)
+// GET all motorcycles (public) - optionally filter by branch
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('motorcycles')
-      .select('*')
+      .select('*, branches(name)')
       .order('created_at', { ascending: false });
+
+    if (req.query.branch_id) {
+      query = query.eq('branch_id', req.query.branch_id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET all branches (public)
+router.get('/branches', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('branches')
+      .select('*')
+      .order('name', { ascending: true });
 
     if (error) throw error;
     res.json(data);
@@ -62,7 +83,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('motorcycles')
-      .select('*')
+      .select('*, branches(name)')
       .eq('id', req.params.id)
       .single();
 
@@ -76,7 +97,7 @@ router.get('/:id', async (req, res) => {
 // POST create motorcycle (admin only)
 router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, description, saigon_deposit, province_deposit, branch_id } = req.body;
 
     if (!name || !price) {
       return res.status(400).json({ error: 'Name and price are required' });
@@ -95,6 +116,9 @@ router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => 
           price: Number(price),
           description: description || '',
           images: imageUrls,
+          saigon_deposit: Number(saigon_deposit) || 0,
+          province_deposit: Number(province_deposit) || 0,
+          branch_id: branch_id || null,
         },
       ])
       .select()
@@ -110,7 +134,7 @@ router.post('/', authMiddleware, upload.array('images', 8), async (req, res) => 
 // PUT update motorcycle (admin only)
 router.put('/:id', authMiddleware, upload.array('images', 8), async (req, res) => {
   try {
-    const { name, price, description, existingImages } = req.body;
+    const { name, price, description, saigon_deposit, province_deposit, branch_id, existingImages } = req.body;
     const { id } = req.params;
 
     let imageUrls = [];
@@ -128,6 +152,9 @@ router.put('/:id', authMiddleware, upload.array('images', 8), async (req, res) =
       price: Number(price),
       description: description || '',
       images: imageUrls,
+      saigon_deposit: Number(saigon_deposit) || 0,
+      province_deposit: Number(province_deposit) || 0,
+      branch_id: branch_id || null,
     };
 
     const { data, error } = await supabase

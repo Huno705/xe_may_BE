@@ -4,6 +4,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const motorcycleRoutes = require('./routes/motorcycles');
+const branchRoutes = require('./routes/branches');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/motorcycles', motorcycleRoutes);
+app.use('/api/branches', branchRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
