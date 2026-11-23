@@ -1,31 +1,16 @@
-// Usage: node scripts/createAdmin.js <email> <password>
-require('dotenv').config();
 const bcrypt = require('bcrypt');
-const supabase = require('../config/database');
+const { createPool } = require('../config/database');
 
-async function createAdmin() {
-  const [email, password] = process.argv.slice(2);
-
-  if (!email || !password) {
-    console.error('Usage: node scripts/createAdmin.js <email> <password>');
-    process.exit(1);
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const { data, error } = await supabase
-    .from('admins')
-    .insert([{ email, password: hashedPassword }])
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Failed to create admin:', error.message);
-    process.exit(1);
-  }
-
-  console.log('Admin created:', { id: data.id, email: data.email });
-  process.exit(0);
+async function main() {
+  const [email, argumentPassword] = process.argv.slice(2);
+  const password = process.env.ADMIN_PASSWORD || argumentPassword;
+  if (!email || !password) throw new Error('Usage: set ADMIN_PASSWORD, then npm run create-admin -- <email>');
+  if (process.env.WRITE_MAINTENANCE === 'true') throw new Error('Writes are disabled during migration');
+  const pool = createPool();
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const { rows } = await pool.query('INSERT INTO public.admins (email, password) VALUES ($1, $2) RETURNING id, email', [email, hash]);
+    console.log('Admin created:', rows[0]);
+  } finally { await pool.end(); }
 }
-
-createAdmin();
+main().catch((error) => { console.error('Create admin failed:', error.code || error.message); process.exitCode = 1; });

@@ -1,34 +1,31 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const { createBackend } = require('./config/backend');
+const { createStorage } = require('./services/storage');
+const { createApp } = require('./app');
 
-const authRoutes = require('./routes/auth');
-const motorcycleRoutes = require('./routes/motorcycles');
-const branchRoutes = require('./routes/branches');
+async function start() {
+  const storage = createStorage();
+  const backend = createBackend();
+  const app = createApp({ repository: backend.repository, storage });
+  try {
+    await backend.repository.health();
+  } catch (error) {
+    await backend.close(); storage.close(); throw error;
+  }
+  const port = process.env.PORT || 5000;
+  const server = app.listen(port, '0.0.0.0', () => console.log(`Server running on port ${port}`));
+  let stopping = false;
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    const deadline = setTimeout(() => process.exit(1), 20000);
+    deadline.unref();
+    server.close(async () => {
+      try { await backend.close(); storage.close(); }
+      finally { clearTimeout(deadline); }
+    });
+  };
+  process.once('SIGTERM', stop);
+  process.once('SIGINT', stop);
+}
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true
-}));
-app.use(express.json());
-
-app.use('/api/auth', authRoutes);
-app.use('/api/motorcycles', motorcycleRoutes);
-app.use('/api/branches', branchRoutes);
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong' });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
+start().catch((error) => { console.error('Startup failed:', error.code || error.message); process.exitCode = 1; });

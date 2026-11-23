@@ -1,19 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+module.exports = function createAuth(secret) {
+  return (req, res, next) => {
+    const match = /^Bearer (\S+)$/i.exec(req.headers.authorization || '');
+    if (!match) return res.status(401).json({ error: 'No token provided' });
+    try {
+      req.user = jwt.verify(match[1], secret, { algorithms: ['HS256'] });
+      next();
+    } catch {
+      res.status(401).json({ error: 'Invalid token' });
+    }
+  };
 };
-
-module.exports = authMiddleware;

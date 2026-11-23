@@ -1,55 +1,21 @@
-# ✅ Checklist Deploy Backend → Railway
+# Checklist chuyển PostgreSQL
 
-## Chuẩn bị trước khi deploy
-
-- [ ] Code backend đã push lên GitHub
-- [ ] File `.env` **KHÔNG** bị commit (đã có trong `.gitignore`)
-- [ ] Có sẵn Supabase project với:
-  - [ ] Table `motorcycles` đã tạo (storage: `images`, bucket: `motorcycles`)
-  - [ ] Đã copy `SUPABASE_URL` và `service_role` key
-
-## Deploy trên Railway
-
-- [ ] Tạo project mới từ GitHub repo
-- [ ] Thêm 3 biến môi trường bắt buộc:
-  ```
-  SUPABASE_URL=https://xxxxxxx.supabase.co
-  SUPABASE_SERVICE_KEY=eyJhbG...
-  JWT_SECRET=<chạy: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))">
-  ```
-- [ ] (Tùy chọn) Thêm `FRONTEND_URL=*` để test, sau đổi thành domain frontend thật
-- [ ] Generate domain tại **Settings → Networking**
-- [ ] Test health endpoint: `curl https://<railway-url>/api/health`
-
-## Tạo tài khoản admin
-
-### Cách 1: Railway CLI (khuyến nghị)
-```bash
-npm i -g @railway/cli
-railway login
-railway link
-railway run npm run create-admin
-```
-
-### Cách 2: Chạy local trỏ về Supabase production
-```bash
-cd backend
-# Đảm bảo .env có SUPABASE_URL và SERVICE_KEY production
-npm run create-admin
-```
-
-## Kết nối frontend
-
-- [ ] Tạo file `frontend/.env.production`:
-  ```
-  VITE_API_URL=https://<railway-url>/api
-  ```
-- [ ] Deploy frontend (Vercel/Netlify)
-- [ ] Quay lại Railway, đổi `FRONTEND_URL` thành domain frontend thật
-- [ ] Test đăng nhập + thêm xe
-
----
-
-**Giám sát:** Vào Railway **Metrics** để xem RAM usage. Free tier $1/tháng chỉ đủ ~15 ngày, sau đó nâng lên Hobby $5/tháng.
-
-Chi tiết đầy đủ: xem [DEPLOY.md](./DEPLOY.md)
+- [x] SQL có tham số, migration version/checksum và pool tối đa 5.
+- [x] API tương thích; giữ bcrypt/JWT, JSON numeric, branch join và ảnh theo thứ tự.
+- [x] Giới hạn upload, adapter R2/Supabase, bù trừ upload lỗi.
+- [x] Khóa ghi, health/readiness, dừng kết nối khi shutdown.
+- [x] Export/import/verify, backup/restore logic, inventory/copy/rewrite ảnh.
+- [x] Kiểm thử PostgreSQL thật, phục hồi transaction, reconnect, tải đọc đồng thời.
+- [x] Diễn tập bản sao 23/11/2026: 142 xe, 4 chi nhánh, 1 admin, 961 tham chiếu ảnh.
+- [x] Inventory: 3.082 object, 864.107.314 byte tại lúc kiểm kê; nguồn tiếp tục có ghi mới.
+- [x] Tạo PostgreSQL Railway, volume, role runtime, tắt sleeping; đặt RAM 1 GB.
+- [x] Kích hoạt R2, bucket/token giới hạn quyền; domain ảnh Active và HTTPS thử đạt.
+- [x] Kiểm tra schema SQL live: PostgreSQL 17.6, 17 cột/6 constraint/trigger khớp đích 18.6.
+- [x] Tạo cron backup 02:00 Việt Nam, chạy thủ công thành công; restore archive mã hóa từ R2 và đối chiếu đủ dữ liệu.
+- [ ] Quan sát lần backup tự động đầu tiên; thiết lập cảnh báo thất bại và thống nhất retention.
+- [x] Chép và xác minh SHA-256/URL công khai của 3.124 ảnh R2 (876.669.980 byte).
+- [x] Diễn tập API trong Railway với PostgreSQL + R2 thật; 20 lượt đọc, pool 5, p95 369 ms.
+- [x] Quan sát tài nguyên một giờ và kiểm thử đồng bộ ngược nguyên tử; chưa thay thế theo dõi production dài ngày.
+- [ ] Deploy adapter Supabase + maintenance, khóa mọi nguồn ghi, xuất final mới.
+- [ ] Import final vào đích trống, verify, đổi provider dưới maintenance, kiểm tra rồi mở ghi.
+- [ ] Theo dõi vận hành/chi phí 7–14 ngày trước quyết định kết thúc Supabase.

@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "create-admin": "node scripts/createAdmin.js"
+    "create-admin": "node scripts/createAdmin.js",
+    "db:migrate": "node scripts/migrate.js",
+    "data": "node scripts/data.js",
+    "images": "node scripts/images.js",
+    "backup": "node scripts/backup.js",
+    "test": "node --test test/*.test.js",
+    "test:integration": "node scripts/test-postgres.js"
   },
   "keywords": [],
   "author": "",
@@ -16,12 +22,17 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1175.0",
     "@supabase/supabase-js": "^2.112.3",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "railway": "^3.17.0"
   }
 }
