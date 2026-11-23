@@ -1,14 +1,16 @@
 # Triển khai PostgreSQL Railway và Cloudflare R2
 
-## Trạng thái chuẩn bị
+## Trạng thái vận hành
 
-Backend hỗ trợ PostgreSQL/R2 và adapter Supabase tạm để khóa ghi trước cutover. Các lệnh data không tự thay production. Không push nhánh production trước khi biến môi trường tương thích đã được thiết lập: mặc định mới cần PostgreSQL/R2.
+Production đã chuyển sang PostgreSQL Railway + Cloudflare R2 ngày 23/11/2026, mở lại ghi lúc khoảng 21:12 Việt Nam. Bản final gồm 148 xe, 4 chi nhánh, 1 admin và 1.004 URL ảnh R2; giữ nguyên UUID, hash mật khẩu, JWT secret, giá, quan hệ và timestamp lưu trong DB. Supabase/ảnh nguồn vẫn được giữ để theo dõi và phục hồi. Các lệnh data không tự thay provider production; khi deploy phải đặt rõ biến môi trường tương thích.
+
+Đã đối chiếu dữ liệu/API dưới maintenance, kiểm tra ghi qua API trong transaction được rollback (không có bản ghi thử công khai), upload/tải ảnh R2 với credentials runtime, phục hồi backup final và xác nhận khóa ghi đã tắt. Bằng chứng riêng tư: `backups/final-import-verification-2026-11-23.json`, `backups/production-write-smoke-2026-11-23.json`, `backups/final-backup-restore-verification-2026-11-23.json`, `backups/production-cutover-complete-2026-11-23.json`.
 
 ## 1. Tạo môi trường đích
 
 - Backend production hiện tại ở US West, project `radiant-optimism` (đã xem dashboard ngày 23/11/2026). Tạo PostgreSQL cùng region và environment phù hợp. Khi thử nghiệm nên tách môi trường hoặc service; không đổi frontend production.
 - Đã tạo service `Postgres` ngày 23/11/2026, image `postgres-ssl:18`, volume `postgres-volume`, US West; Serverless đang tắt. Chưa có phép đo chi phí PostgreSQL thật; ngân sách 8–10 USD/tháng trong kế hoạch là ước lượng, không phải giới hạn bảo đảm.
-- PostgreSQL thực tế 18.6; memory limit đã đọc lại là 1 GB. CPU hiện kế thừa mức 8 của plan, chưa đặt được giới hạn 1 vCPU cho Postgres. Không có public DB endpoint. `showroom` dành cho final và còn trống; các database rehearsal/restore tách riêng. Role API `showroom_app` chỉ DML, pool tối đa 5.
+- PostgreSQL thực tế 18.6; memory limit đã đọc lại là 1 GB. CPU hiện kế thừa mức 8 của plan, chưa đặt được giới hạn 1 vCPU cho Postgres. Không có public DB endpoint. `showroom` đã nhận bản final 148 xe và phục vụ production; các database rehearsal/restore tách riêng. Role API `showroom_app` chỉ DML, pool tối đa 5.
 - Dashboard tài khoản Hobby hiện yêu cầu **nâng Pro để tạo/schedule volume backup**. Chưa nâng gói. Vì vậy phải dùng job backup logic riêng vào kho riêng tư và diễn tập restore trước cutover; không coi volume hiện tại đã có backup tự động.
 - Dùng URL nội bộ cho backend. Ưu tiên `railway connect Postgres --tunnel-only` để thao tác local qua tunnel mã hóa mà không bật public access. TCP proxy chỉ dùng khi có lý do và cấu hình TLS theo chứng chỉ thực tế. Không giảm kiểm tra chứng chỉ để vượt lỗi kết nối.
 - Chạy `npm run db:migrate` bằng URL role quản trị/migration. Không dùng superuser cho API. Ví dụ cấp quyền sau khi DBA tạo role đăng nhập `showroom_app` bằng mật khẩu riêng trong hệ thống quản lý secret:
@@ -65,7 +67,7 @@ Giữ nguyên URL API thì frontend không cần build lại. Khi một trong DB
 - Khi quay lại database, giữ R2 hoạt động và các URL R2 hiện có; đồng bộ dữ liệu không tự chép byte ảnh về Supabase. Nếu R2 cũng gặp sự cố thì phải có kế hoạch phục hồi ảnh riêng trước khi mở ghi. Nếu PostgreSQL mất kết nối, ghi rõ thời điểm backup được phục hồi và phần dữ liệu có thể mất.
 - `data export-postgres` tạo backup logic ba bảng, cần lưu cùng migrations và cấu hình. Native `pg_dump --format=custom --no-owner --no-acl` cùng `pg_restore` vẫn cần thiết cho vận hành DB đầy đủ; dùng biến môi trường/pgpass để không lộ password trong command line, và giữ backup ở kho riêng tư.
 - Đã cấu hình service `postgres-backup` trên Railway, lịch `0 19 * * *` UTC = 02:00 Việt Nam, restart NEVER, 1 GB RAM/1 vCPU. Job dùng `showroom_backup` chỉ SELECT, native dump PostgreSQL 18 và AES-256-GCM, lưu vào bucket riêng tư `3sgo-database-backups`. Token chỉ được đọc/ghi bucket backup; khóa mã hóa nằm trong secrets, không nằm trong object R2.
-- Lần chạy thủ công 23/11/2026 đã kết thúc và xác minh đọc lại archive. Đã tải archive rehearsal từ R2, giải mã, restore vào `showroom_r2_restore_20261123`, đối chiếu đủ 142 xe/4 chi nhánh/1 admin/961 tham chiếu ảnh. Bằng chứng: `backups/railway-backup-job-verification-2026-11-23.json` và `backups/railway-r2-restore-verification-2026-11-23.json`. Chưa quan sát lần chạy tự động đầu tiên. `showroom` còn trống: job hiện chưa bảo vệ dữ liệu live Supabase.
+- Lần chạy thủ công sau import final lúc 21:09 ngày 23/11/2026 đã kết thúc và xác minh đọc lại archive mã hóa 40.146 byte. Đã tải từ R2, giải mã, restore vào `showroom_final_restore_20261123`, đối chiếu đủ 148 xe/4 chi nhánh/1 admin/1.004 URL ảnh. Bằng chứng: `backups/final-backup-restore-verification-2026-11-23.json`. Job hiện sao lưu `showroom` đang phục vụ production. Chưa quan sát lần chạy tự động đầu tiên, dự kiến 02:00 ngày 24/11/2026.
 - Kiểm tra vận hành: `railway logs --service postgres-backup --lines 30 --json` phải có `verified: true`; đối chiếu timestamp/object tương ứng trong R2 sau 02:00 mỗi ngày. Nếu quá 26 giờ không có archive xác minh hoặc job lỗi, xử lý trước khi coi backup còn cập nhật. Chưa cấu hình gửi cảnh báo tự động ra ngoài; kiểm tra log thủ công không thay thế cảnh báo.
 - Giữ toàn bộ archive trong giai đoạn chuyển đổi; chưa bật retention tự xóa. Sau vận hành ổn định cần thống nhất thời gian giữ và thử phục hồi định kỳ trước khi dọn. Code giới hạn archive 128 MiB, cần streaming khi dữ liệu vượt ngưỡng. Ảnh bỏ khỏi xe được giữ trong rollback window; chỉ dọn sau khi kiểm tra không còn tham chiếu.
 

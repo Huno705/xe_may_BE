@@ -16,6 +16,9 @@
 - [x] Chép và xác minh SHA-256/URL công khai của 3.124 ảnh R2 (876.669.980 byte).
 - [x] Diễn tập API trong Railway với PostgreSQL + R2 thật; 20 lượt đọc, pool 5, p95 369 ms.
 - [x] Quan sát tài nguyên một giờ và kiểm thử đồng bộ ngược nguyên tử; chưa thay thế theo dõi production dài ngày.
-- [ ] Deploy adapter Supabase + maintenance, khóa mọi nguồn ghi, xuất final mới.
-- [ ] Import final vào đích trống, verify, đổi provider dưới maintenance, kiểm tra rồi mở ghi.
+- [x] Deploy adapter Supabase + maintenance, khóa nguồn ghi qua admin và xuất final mới: 148 xe/4 chi nhánh/1 admin/1.004 URL ảnh.
+- [x] Import final vào đích trống, verify từng trường, chuyển PostgreSQL/R2 dưới maintenance; kiểm tra và mở lại ghi lúc khoảng 21:12 ngày 23/11/2026.
+- [x] Backup dữ liệu final và phục hồi archive R2 vào database riêng, khớp toàn bộ dữ liệu.
+- [x] Kiểm tra ghi API trong transaction được rollback và upload/đọc R2 trên cấu hình production; không công khai bản ghi thử.
+- [x] Commit/push backend, apply Railway IaC, readiness và tắt sleeping; bỏ cấu hình railway.json cũ.
 - [ ] Theo dõi vận hành/chi phí 7–14 ngày trước quyết định kết thúc Supabase.

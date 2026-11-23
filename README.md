@@ -2,6 +2,8 @@
 
 Express 5 / Node.js 22+, PostgreSQL qua `pg`, bcrypt/JWT và ảnh trên Cloudflare R2. Frontend tiếp tục dùng các API và cấu trúc JSON cũ. Không lưu byte ảnh trong database.
 
+Production đã chuyển sang PostgreSQL Railway + R2 ngày 23/11/2026, mở lại ghi lúc khoảng 21:12 giờ Việt Nam. Đã chuyển đủ 148 xe, 4 chi nhánh, 1 admin và 1.004 URL ảnh; 3.124 object ảnh được giữ tại R2. Giữ Supabase cùng ảnh gốc trong giai đoạn theo dõi 7–14 ngày, chưa hủy dịch vụ nguồn.
+
 ## Chạy local
 
 ```sh
@@ -90,7 +92,7 @@ npm run backup -- restore postgres/<timestamp>-<uuid>.dump.enc
 
 Archive native được mã hóa AES-256-GCM trước upload; job tải lại object, kiểm tra byte và giải mã trước khi báo thành công. Restore xác thực mã hóa rồi chạy `pg_restore` trong transaction, từ chối database đã có bảng. Sau restore phải đối chiếu dữ liệu trước khi dùng. Bộ nhớ hiện giới hạn dump 128 MiB; vượt ngưỡng sẽ báo lỗi và cần chuyển sang giải pháp streaming.
 
-Service Railway `postgres-backup` đã cấu hình `0 19 * * *` UTC (02:00 Việt Nam), restart NEVER, không HTTP healthcheck. Ngày 23/11/2026 đã chạy thủ công thành công và khôi phục archive diễn tập từ R2, khớp 142 xe/4 chi nhánh/1 admin. Job trỏ tới `showroom`; database này còn trống trước cutover nên **chưa sao lưu dữ liệu Supabase đang chạy**. Chưa có chính sách tự xóa backup hoặc cảnh báo gửi ra ngoài. Xem hướng dẫn vận hành trong DEPLOY.md.
+Service Railway `postgres-backup` đã cấu hình `0 19 * * *` UTC (02:00 Việt Nam), restart NEVER, không HTTP healthcheck. Sau khi nhập final vào `showroom` ngày 23/11/2026, job đã chạy thủ công và lưu archive mã hóa 40.146 byte vào R2. Đã tải, giải mã và phục hồi sang database riêng, khớp toàn bộ 148 xe/4 chi nhánh/1 admin/1.004 URL ảnh. Lần chạy theo lịch đầu tiên dự kiến 02:00 ngày 24/11, chưa được quan sát tại lúc cutover. Chưa có chính sách tự xóa backup hoặc cảnh báo gửi ra ngoài. Xem hướng dẫn vận hành trong DEPLOY.md.
 
 ## Kiểm thử
 
