@@ -71,6 +71,6 @@ Giữ nguyên URL API thì frontend không cần build lại. Khi một trong DB
 
 ## 6. Cấu hình Railway trong repository
 
-`.railway/railway.ts` là partial chỉ quản lý backend `glorious-youthfulness`, variables unmanaged. Đã chạy plan thành công; chưa apply và chưa thay `railway.json` đang dùng production. Chỉ chuyển cấu hình healthcheck sang `/api/ready` khi release tương thích đã được chuẩn bị. Không áp healthcheck mới vào backend cũ. Không đưa `.local/`, `backups/`, `.env` hoặc file variables có secrets vào gói deploy.
+`.railway/railway.ts` là partial chỉ quản lý backend `glorious-youthfulness`, variables unmanaged. Đã apply sau khi release tương thích chạy thành công: builder NIXPACKS, `npm start`, healthcheck `/api/ready` timeout 60 giây, một replica US West và tắt sleeping. Đã bỏ `railway.json`; dùng `railway config plan` để xem thay đổi và `railway config apply` để áp cấu hình hạ tầng. Không đưa `.local/`, `backups/`, `.env` hoặc file variables có secrets vào gói deploy.
 
 Tài liệu chính thức: [Railway PostgreSQL](https://docs.railway.com/databases/postgresql), [node-postgres TLS](https://node-postgres.com/features/ssl), [Cloudflare R2 SDK](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/).
